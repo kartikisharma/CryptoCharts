@@ -7,10 +7,11 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+
+import static kartiki.cryptocharts.MainActivity.coinPriceMap;
 
 /**
  * Created by Kartiki on 2018-02-02.
@@ -18,21 +19,34 @@ import butterknife.ButterKnife;
 
 public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataViewHolder> {
     private ArrayList<String> coinNameList;
-    private HashMap<String, String> coinsPriceMap;
 
 
-    public CoinsAdapter(ArrayList<String> coinNameList, HashMap<String, String> coinsPriceMap) {
+    public CoinsAdapter(ArrayList<String> coinNameList) {
         this.coinNameList = coinNameList;
-        this.coinsPriceMap = coinsPriceMap;
     }
 
     @Override
     public void onBindViewHolder(CoinDataViewHolder holder, int position) {
         String coinName = coinNameList.get(position);
-        String price = coinsPriceMap.get(coinName);
-
         holder.coinName.setText(coinName);
-        if (price != null) holder.coinPrice.setText(price);
+
+//        new Thread(new Runnable() {
+//            String coinPrice = coinPriceMap.get(coinName);
+//            @Override
+//            public void run() {
+//
+//                if (coinPrice == null) {
+//                    MainActivity.fetchAndStorePriceOfCoin(coinName);
+//                    coinPrice = coinPriceMap.get(coinName);
+//                }
+//                holder.coinPrice.post(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        holder.coinPrice.setText(coinPrice);
+//                    }
+//                });
+//            }
+//        }).start();
     }
 
     @Override
