@@ -1,6 +1,8 @@
 package kartiki.cryptocharts;
 
-import retrofit2.Call;
+
+import io.reactivex.Observable;
+import retrofit2.Response;
 import retrofit2.http.GET;
 import retrofit2.http.Query;
 
@@ -10,8 +12,8 @@ import retrofit2.http.Query;
 
 public interface CryptoAPIService {
     @GET("api/data/coinlist/")
-    Call<CoinListResponse> getCoinList();
+    Observable<Response<CoinListResponse>> getCoinList();
 
     @GET("data/price")
-    Call<CADPrice> getCoinPrice(@Query("fsym") String coinName, @Query("tsyms") String currencyType);
+    Observable<CADPrice> getCoinPrice(@Query("fsym") String coinName, @Query("tsyms") String currencyType);
 }
