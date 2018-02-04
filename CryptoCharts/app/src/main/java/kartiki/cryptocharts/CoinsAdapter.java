@@ -13,6 +13,9 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import io.reactivex.Scheduler;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by Kartiki on 2018-02-02.
@@ -30,25 +33,14 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
     @Override
     public void onBindViewHolder(CoinDataViewHolder holder, int position) {
         holder.coinName.setText(coinsNameList.get(position));
-        holder.coinPrice.setText(namePriceList.get(coinsNameList.get(position)));
-
-//        new Thread(new Runnable() {
-//            String coinPrice = coinPriceMap.get(coinName);
-//            @Override
-//            public void run() {
-//
-//                if (coinPrice == null) {
-//                    MainActivity.fetchAndStorePriceOfCoin(coinName);
-//                    coinPrice = coinPriceMap.get(coinName);
-//                }
-//                holder.coinPrice.post(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        holder.coinPrice.setText(coinPrice);
-//                    }
-//                });
-//            }
-//        }).start();
+        if (namePriceList.get(coinsNameList.get(position)) == null) {
+            MainActivity.apiService2.getCoinPrice(coinsNameList.get(position), "CAD")
+                    .subscribeOn(Schedulers.newThread())
+                    .observeOn(Schedulers.io())
+                    .doOnNext(cadPrice -> holder.coinPrice.setText(cadPrice.getPrice()));
+        } else {
+            holder.coinPrice.setText(namePriceList.get(coinsNameList.get(position)));
+        }
     }
 
     @Override
