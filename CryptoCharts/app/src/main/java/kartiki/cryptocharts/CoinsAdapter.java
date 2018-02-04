@@ -7,6 +7,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import butterknife.BindView;
@@ -17,17 +19,18 @@ import butterknife.ButterKnife;
  */
 
 public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataViewHolder> {
-    private List<Pair<String, String>> namePriceList;
+    private HashMap<String, String> namePriceList;
+    private ArrayList<String> coinsNameList;
 
-
-    public CoinsAdapter(List<Pair<String, String>> namePriceList) {
+    public CoinsAdapter(ArrayList<String> coinsNameList, HashMap<String, String> namePriceList) {
+        this.coinsNameList = coinsNameList;
         this.namePriceList = namePriceList;
     }
 
     @Override
     public void onBindViewHolder(CoinDataViewHolder holder, int position) {
-        holder.coinName.setText(namePriceList.get(position).first);
-        holder.coinPrice.setText(namePriceList.get(position).second);
+        holder.coinName.setText(coinsNameList.get(position));
+        holder.coinPrice.setText(namePriceList.get(coinsNameList.get(position)));
 
 //        new Thread(new Runnable() {
 //            String coinPrice = coinPriceMap.get(coinName);

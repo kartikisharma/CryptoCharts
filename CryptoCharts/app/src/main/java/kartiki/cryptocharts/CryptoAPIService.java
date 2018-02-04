@@ -15,5 +15,8 @@ public interface CryptoAPIService {
     Observable<Response<CoinListResponse>> getCoinList();
 
     @GET("data/price")
-    Observable<Response<CADPrice>> getCoinPrice(@Query("fsym") String coinName, @Query("tsyms") String currencyType);
+    Observable<CADPrice> getCoinPrice(@Query("fsym") String coinName, @Query("tsyms") String currencyType);
+
+    @GET("data/pricemulti")
+    Observable<PriceMultiResponse> getCoinPriceMulti(@Query("fsym") String coinName, @Query("tsyms") String currencyType);
 }

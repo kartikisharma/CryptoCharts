@@ -1,8 +1,6 @@
 package kartiki.cryptocharts;
 
-import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -14,22 +12,12 @@ import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.reactivex.Observable;
-import io.reactivex.ObservableSource;
-import io.reactivex.Scheduler;
 import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.functions.BiFunction;
-import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
@@ -44,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
         return new Retrofit.Builder()
                 .baseUrl(baseUrl)
                 .addConverterFactory(GsonConverterFactory.create())
-                .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
+                .addCallAdapterFactory(RxJava2CallAdapterFactory.createWithScheduler(Schedulers.io()))
                 .build();
     }
 
@@ -62,70 +50,118 @@ public class MainActivity extends AppCompatActivity {
 
         fetchCryptoCoinsData();
 
-//        Observable.fromIterable(coinsNameList)
-//                .flatMap(new Function<String, ObservableSource<Pair<String, String>>>() {
-//                    @Override
-//                    public ObservableSource<Pair<String, String>> apply(@NonNull String coinName) throws Exception {
-//                        return Observable.zip(
-//                                Observable.just(coinName),
-//                                fetchAndStorePriceOfCoin(coinName),
-//                                new BiFunction<String,, Pair<String, String>>() {
-//                                    @Override
-//                                    public Pair<String, String> apply(@NonNull String coinName, @NonNull CADPrice price) throws Exception {
-//                                        return new Pair<String, String>(coinName, price.getPrice());
-//                                    }
-//                                });
-//                    }
-//                })
-//                .toList()
-//                .subscribeOn(Schedulers.io())
-//                .observeOn(AndroidSchedulers.mainThread());
-
         //progressBar.setVisibility(View.GONE);
         //recyclerView.setVisibility(View.VISIBLE);
     }
 
-//    private void fetchPricesForCryptoCoins() {
-//        if (coinsNameList != null) {
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-//                coinsNameList.forEach((coinName) -> fetchAndStorePriceOfCoin(coinName));
-//            } else {
-//                Iterator<String> it = coinsNameList.iterator();
-//                while (it.hasNext()) {
-//                    String curCoinName = it.next();
-//                    fetchAndStorePriceOfCoin(curCoinName);
-//                }
-//            }
-//
-//            setupAdapter();
-//        }
-//
-//    }
-
     private void fetchCryptoCoinsData() {
+
         apiService.getCoinList()
-                .subscribeOn(Schedulers.newThread())
-                .flatMap(coinListResponse ->
-                        Observable.just(new ArrayList<>(coinListResponse.body().getCoins().keySet()))
-                                .onErrorResumeNext(Observable.<ArrayList<String>>empty()))
-
-                .flatMapIterable(coinNames -> coinNames)
-
-                .flatMap(coinName ->
-                        apiService2.getCoinPrice(coinName, "CAD")
-                                .flatMap(cadPriceResponse ->
-                                        Observable.just(cadPriceResponse.body().getPrice())
-                                                .onErrorResumeNext(Observable.<String>empty()))
-
-                                .flatMap(price -> Observable.just(new Pair<>(coinName, price))))
                 .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .doOnNext(coinListResponse -> coinsNameList = new ArrayList<>(coinListResponse.body().getCoins().keySet()))
+                .flatMap(coinListResponse -> Observable.just(coinListResponse.body().getCoins().keySet()))
+                .flatMapIterable(baseDatas -> baseDatas)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .flatMap(coinsName ->
+                        apiService2
+                                .getCoinPrice(coinsName, "CAD")
+                                .flatMap(cadPrice -> Observable.just(new Pair<>(coinsName, cadPrice.getPrice())))
+                                .doOnNext(pair -> coinPriceMap.put(pair.first, pair.second)))
+//                .doOnNext(pair -> coinPriceMap.put(pair.first, pair.second))
                 .toList()
-                .subscribe(list -> {
-                    setupAdapter(list);
-                }, error -> {
-                    Log.e("error", error.getStackTrace().toString());
-                    Toast.makeText(MainActivity.this, "Please try again later", Toast.LENGTH_SHORT).show();
-                });
+                .subscribeOn(AndroidSchedulers.mainThread())
+                .subscribe(list -> setupAdapter(coinsNameList, coinPriceMap),
+                        error -> {
+                            Log.e("error", error.getMessage());
+                            Toast.makeText(MainActivity.this, "Please try again later", Toast.LENGTH_SHORT).show();
+                        });
+
+
+
+        // also didn't work wtf
+//        apiService.getCoinList()
+//                .observeOn(AndroidSchedulers.mainThread())
+//                .subscribeOn(Schedulers.io())
+//                .doOnNext(coinListResponse -> {
+//                    if (coinListResponse.isSuccessful()) {
+//                        coinsNameList = new ArrayList<>(coinListResponse.body().getCoins().keySet());
+//                    }
+//                })
+//                .flatMap(coinListResponse -> Observable.just(coinListResponse.body().getCoins().keySet()))
+//                .doOnNext(coinsNameList -> priceArg = android.text.TextUtils.join(",", coinsNameList))
+//                .observeOn(AndroidSchedulers.mainThread())
+//                .subscribeOn(Schedulers.io())
+//                .flatMap(price -> apiService2.getCoinPriceMulti(priceArg, "CAD"))
+//                .subscribe(priceMultiResponse -> setupAdapter(coinsNameList, priceMultiResponse.priceList),
+//                        error -> {
+//                            Log.e("error", error.getMessage());
+//                            Toast.makeText(MainActivity.this, "Please try again later", Toast.LENGTH_SHORT).show();
+//                        });
+
+        // Failed as well, too many files open for responses on prices
+//        apiService.getCoinList()
+//                .observeOn(AndroidSchedulers.mainThread())
+//                .subscribeOn(Schedulers.io())
+//                .doOnNext(coinListResponse -> coinsNameList = new ArrayList<>(coinListResponse.getCoins().keySet()))
+//                .flatMap(coinListResponse -> Observable.just(coinListResponse.getCoins().keySet()))
+//                .flatMapIterable(baseDatas -> baseDatas)
+//                .flatMap(coinsName ->
+//                    apiService2.getCoinPrice(coinsName, "CAD")
+//                        .subscribeOn(Schedulers.io())
+//                        .observeOn(AndroidSchedulers.mainThread())
+//                            .doOnNext(cadPrice -> curCadPrice = cadPrice.getPrice())
+//                            .doOnNext(cadPrice -> coinPriceMap.put(coinsName, cadPrice.getPrice())))
+//                .toList()
+//                .subscribe(success -> setupAdapter(coinsNameList, coinPriceMap),
+//                        error -> Toast.makeText(MainActivity.this, "Please try again later", Toast.LENGTH_SHORT).show()
+//                );
+
+//        apiService.getCoinList()
+//                .subscribeOn(Schedulers.newThread())
+//                .observeOn(AndroidSchedulers.mainThread())
+//                .subscribe(coinListResponseResponse -> {
+//                            if (coinListResponseResponse.isSuccessful()) {
+//                                coinsNameList = new ArrayList<>(coinListResponseResponse.body().getCoins().keySet());
+//                                Observable.just(coinsNameList)
+//                                        .flatMapIterable(nameList -> nameList)
+//                                        .flatMap(coinName -> apiService2.getCoinPrice(coinName, "CAD")
+//                                                .doOnNext(cadPriceResponse -> Observable.just(new Pair<>(coinName, cadPriceResponse.body().getPrice()))
+//                                                        .toList()
+//                                                        .subscribe(s -> setupAdapter(s),
+//                                                                error -> Log.e("error", error.getMessage())
+//                                                        )
+//                                                )
+//                                        );
+//
+//                            } else {
+//                                Toast.makeText(MainActivity.this, "Please try again later", Toast.LENGTH_SHORT).show();
+//                            }
+//                        }, error -> {
+//                            Toast.makeText(MainActivity.this, "Please try again later", Toast.LENGTH_SHORT).show();
+//                        }
+//                );
+
+
+////                        //Observable.just(new ArrayList<>(coinListResponse.body().getCoins().keySet()))
+////                        //        .onErrorResumeNext(Observable.<ArrayList<String>>empty()))
+////                .map(list -> coinsNameList)
+////                .subscribe(success -> {
+////                    Observable.just(coinsNameList)
+////                            .flatMapIterable(coinNames -> coinNames)
+////                            .flatMap(coinName ->
+////                                    apiService2.getCoinPrice(coinName, "CAD")
+////                                            .flatMap(cadPriceResponse -> Observable.just(cadPriceResponse.body().getPrice()))
+////                                            .flatMap(price -> Observable.just(new Pair<>(coinName, price))))
+////                            .toList()
+////                            .observeOn(AndroidSchedulers.mainThread())
+////                            .subscribe(listOfPairs -> setupAdapter(listOfPairs),
+////                                    error -> Log.e("error", error.getStackTrace().toString()));
+////                },
+////                error -> {
+////
+//    });
 //                .flatMap(coinName -> apiService2.getCoinPrice(coinName, "CAD")
 //                                .doOnNext(cadPriceResponse -> cadPriceResponse.body().getPrice())
 //                                .map(price -> coinName.)
@@ -172,7 +208,7 @@ public class MainActivity extends AppCompatActivity {
 //                setupAdapter();
 //            }
 //        });
-                        }
+    }
 
 //    public static String fetchAndStorePriceOfCoin(final String coinName) {
 //        Call<CADPrice> call = apiService2.getCoinPrice(coinName, "CAD");
@@ -202,19 +238,21 @@ public class MainActivity extends AppCompatActivity {
 //
 //    }
 
-    void fetchAndStorePriceOfCoin(final String coinName) {
-        apiService2.getCoinPrice(coinName, "CAD")
-                .subscribe(cadPriceResponse -> {
-                    if (cadPriceResponse.isSuccessful()) {
-                        coinPriceMap.put(coinName, cadPriceResponse.body().getPrice());
-                    }
-                }, error -> {
-                    Log.e("CoinPriceAPIRespFailure", String.format("Failed to retrieve price of %s", coinName));
-                });
-    }
+//    void fetchAndStorePriceOfCoin(final String coinName) {
+//        apiService2.getCoinPrice(coinName, "CAD")
+//                .subscribe(cadPriceResponse -> {
+//                    if (cadPriceResponse.isSuccessful()) {
+//                        coinPriceMap.put(coinName, cadPriceResponse.body().getPrice());
+//                    }
+//                }, error -> {
+//                    Log.e("CoinPriceAPIRespFailure", String.format("Failed to retrieve price of %s", coinName));
+//                });
+//    }
 
-    private void setupAdapter(List<Pair<String, String>> namePriceList) {
-        adapter = new CoinsAdapter(namePriceList);
-        recyclerView.setAdapter(adapter);
+    private void setupAdapter(ArrayList<String> coinsNameList, HashMap<String, String> namePriceList) {
+        this.runOnUiThread(() -> {
+                adapter = new CoinsAdapter(coinsNameList, namePriceList);
+                recyclerView.setAdapter(adapter);
+        });
     }
 }
