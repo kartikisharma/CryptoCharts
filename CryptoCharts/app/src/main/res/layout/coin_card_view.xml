@@ -30,7 +30,7 @@
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:background="#00ffffff"
-            android:src="@android:drawable/btn_star" />
+            android:src="@drawable/star"/>
     </RelativeLayout>
 
 </android.support.v7.widget.CardView>
