@@ -1,34 +1,33 @@
 package kartiki.cryptocharts;
 
 import android.support.v7.widget.RecyclerView;
+import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import java.util.ArrayList;
+import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-
-import static kartiki.cryptocharts.MainActivity.coinPriceMap;
 
 /**
  * Created by Kartiki on 2018-02-02.
  */
 
 public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataViewHolder> {
-    private ArrayList<String> coinNameList;
+    private List<Pair<String, String>> namePriceList;
 
 
-    public CoinsAdapter(ArrayList<String> coinNameList) {
-        this.coinNameList = coinNameList;
+    public CoinsAdapter(List<Pair<String, String>> namePriceList) {
+        this.namePriceList = namePriceList;
     }
 
     @Override
     public void onBindViewHolder(CoinDataViewHolder holder, int position) {
-        String coinName = coinNameList.get(position);
-        holder.coinName.setText(coinName);
+        holder.coinName.setText(namePriceList.get(position).first);
+        holder.coinPrice.setText(namePriceList.get(position).second);
 
 //        new Thread(new Runnable() {
 //            String coinPrice = coinPriceMap.get(coinName);
@@ -71,6 +70,6 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
 
     @Override
     public int getItemCount() {
-        return (coinNameList != null) ? coinNameList.size() : 0;
+        return (namePriceList != null) ? namePriceList.size() : 0;
     }
 }

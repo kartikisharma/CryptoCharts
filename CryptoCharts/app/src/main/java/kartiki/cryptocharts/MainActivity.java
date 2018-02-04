@@ -15,6 +15,7 @@ import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import butterknife.BindView;
@@ -103,17 +104,49 @@ public class MainActivity extends AppCompatActivity {
 
     private void fetchCryptoCoinsData() {
         apiService.getCoinList()
-                .subscribeOn(Schedulers.io())
+                .subscribeOn(Schedulers.newThread())
+                .flatMap(coinListResponse ->
+                        Observable.just(new ArrayList<>(coinListResponse.body().getCoins().keySet()))
+                                .onErrorResumeNext(Observable.<ArrayList<String>>empty()))
+
+                .flatMapIterable(coinNames -> coinNames)
+
+                .flatMap(coinName ->
+                        apiService2.getCoinPrice(coinName, "CAD")
+                                .flatMap(cadPriceResponse ->
+                                        Observable.just(cadPriceResponse.body().getPrice())
+                                                .onErrorResumeNext(Observable.<String>empty()))
+
+                                .flatMap(price -> Observable.just(new Pair<>(coinName, price))))
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(coinListResponse -> {
-                    if (coinListResponse.isSuccessful()) {
-                        Map<String, Coin> coinsMap = coinListResponse.body().getCoins();
-                        coinsNameList = new ArrayList<>(coinsMap.keySet());
-                        setupAdapter();
-                    }
+                .toList()
+                .subscribe(list -> {
+                    setupAdapter(list);
                 }, error -> {
+                    Log.e("error", error.getStackTrace().toString());
                     Toast.makeText(MainActivity.this, "Please try again later", Toast.LENGTH_SHORT).show();
                 });
+//                .flatMap(coinName -> apiService2.getCoinPrice(coinName, "CAD")
+//                                .doOnNext(cadPriceResponse -> cadPriceResponse.body().getPrice())
+//                                .map(price -> coinName.)
+//                )
+
+
+//                .subscribe(coinListResponse -> {
+//                    if (coinListResponse.isSuccessful()) {
+//                        Map<String, Coin> coinsMap = coinListResponse.body().getCoins();
+//                        coinsNameList = new ArrayList<>(coinsMap.keySet());
+//
+//                        Observable.fromIterable(coinsNameList)
+//
+//                                .forEach(item -> fetchAndStorePriceOfCoin(item))
+//                                .notify();
+//
+//
+//                    }
+//                }, error -> {
+//                    Toast.makeText(MainActivity.this, "Please try again later", Toast.LENGTH_SHORT).show();
+//                });
 
 
 //        Observable.just(coinsNameList)
@@ -139,7 +172,7 @@ public class MainActivity extends AppCompatActivity {
 //                setupAdapter();
 //            }
 //        });
-    }
+                        }
 
 //    public static String fetchAndStorePriceOfCoin(final String coinName) {
 //        Call<CADPrice> call = apiService2.getCoinPrice(coinName, "CAD");
@@ -169,8 +202,19 @@ public class MainActivity extends AppCompatActivity {
 //
 //    }
 
-    private void setupAdapter() {
-        adapter = new CoinsAdapter(coinsNameList);
+    void fetchAndStorePriceOfCoin(final String coinName) {
+        apiService2.getCoinPrice(coinName, "CAD")
+                .subscribe(cadPriceResponse -> {
+                    if (cadPriceResponse.isSuccessful()) {
+                        coinPriceMap.put(coinName, cadPriceResponse.body().getPrice());
+                    }
+                }, error -> {
+                    Log.e("CoinPriceAPIRespFailure", String.format("Failed to retrieve price of %s", coinName));
+                });
+    }
+
+    private void setupAdapter(List<Pair<String, String>> namePriceList) {
+        adapter = new CoinsAdapter(namePriceList);
         recyclerView.setAdapter(adapter);
     }
 }
