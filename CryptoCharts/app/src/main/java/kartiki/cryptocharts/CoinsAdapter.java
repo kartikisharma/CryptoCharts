@@ -1,5 +1,7 @@
 package kartiki.cryptocharts;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -12,7 +14,6 @@ import java.util.HashMap;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
 
 /**
@@ -22,6 +23,7 @@ import io.reactivex.schedulers.Schedulers;
 public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataViewHolder> {
     private ArrayList<String> coinsNameList;
     private HashMap<String, String> coinPriceMap;
+    private Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public CoinsAdapter(ArrayList<String> coinsNameList) {
         this.coinsNameList = coinsNameList;
@@ -36,15 +38,20 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
         if (coinPriceMap.get(coinName) == null) {
             MainActivity.apiService2.getCoinPrice(coinName, "CAD")
                     .subscribeOn(Schedulers.newThread())
-                    .observeOn(AndroidSchedulers.mainThread())
+                    .observeOn(Schedulers.io())
                     .subscribe(cadPrice -> {
                         // storing price mapping in HashMap for consequent binding
                         coinPriceMap.put(coinName, cadPrice.getPrice());
-                        holder.coinPrice.setText(cadPrice.getPrice());
-                        holder.coinPrice.setVisibility(View.VISIBLE);
-                    }, error -> Log.e("error", "cad"));
-        } else {
-            holder.coinPrice.setText(coinPriceMap.get(coinName));
+
+                        if (cadPrice.getPrice() != null) {
+                            Runnable updatePrice = () ->
+                                    holder.coinPrice.setText(String.format("$%s", cadPrice.getPrice()));
+
+                            mainHandler.post(updatePrice);
+                        }
+                    }, error -> Log.e("cadPriceAPIRespFailure", error.getMessage()));
+        } else if (coinPriceMap.get(coinName) != null) {
+            holder.coinPrice.setText(String.format("$%s", coinPriceMap.get(coinName)));
         }
     }
 
