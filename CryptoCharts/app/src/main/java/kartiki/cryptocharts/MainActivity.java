@@ -1,5 +1,6 @@
 package kartiki.cryptocharts;
 
+import android.accounts.NetworkErrorException;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -10,17 +11,15 @@ import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
-
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.reactivex.schedulers.Schedulers;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements InternetConnectionListener {
     @BindView(R.id.crypto_recycler_view)
     RecyclerView recyclerView;
 
@@ -32,15 +31,11 @@ public class MainActivity extends AppCompatActivity {
     // contains pairs of coin name and if it was favourited
     private ArrayList<Pair<String, Boolean>> coinNameAndFavouriteList = new ArrayList<>();
 
-    static Retrofit retrofit(String baseUrl) {
-        return new Retrofit.Builder()
-                .baseUrl(baseUrl)
-                .addConverterFactory(GsonConverterFactory.create())
-                .addCallAdapterFactory(RxJava2CallAdapterFactory.createWithScheduler(Schedulers.io()))
-                .build();
+    @Override
+    public void onInternetUnavailable() {
+        // hide content UI
+        // show No Internet Connection UI
     }
-
-    private CryptoCoinListAPIService apiService = retrofit(CryptoCoinListAPIService.baseUrl).create(CryptoCoinListAPIService.class);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +47,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
 
+        ((App) getApplication()).setInternetConnectionListener(this);
+
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
@@ -59,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void fetchCryptoCoinsData() {
-        apiService.getCoinList()
+        ((App) getApplication()).getCryptoCoinListAPIService().getCoinList()
                 .observeOn(Schedulers.io())
                 .subscribeOn(Schedulers.newThread())
                 .subscribe(coinListResponse -> {
@@ -70,14 +67,20 @@ public class MainActivity extends AppCompatActivity {
                             setupAdapter(coinNameAndFavouriteList);
                         },
                         error -> {
-                            Log.e("error", error.getMessage());
-                            Toast.makeText(MainActivity.this, "Please try again later", Toast.LENGTH_SHORT).show();
+                            if (error.getClass().equals(UnknownHostException.class) ||
+                                    error.getClass().equals(SocketTimeoutException.class)) {
+                                this.runOnUiThread(() -> progressBar.setVisibility(View.GONE));
+                            }
+                            else {
+                                Log.e("error", error.getMessage());
+                                Toast.makeText(MainActivity.this, "Please try again later", Toast.LENGTH_SHORT).show();
+                            }
                         });
     }
 
 
     private void setupAdapter(ArrayList<Pair<String, Boolean>> coinsNameList) {
-        adapter = new CoinsAdapter(coinsNameList);
+        adapter = new CoinsAdapter(coinsNameList, ((App) getApplication()).getCryptoPriceAPIService());
         this.runOnUiThread(() -> {
             recyclerView.setAdapter(adapter);
             progressBar.setVisibility(View.GONE);
@@ -85,8 +88,10 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+
     @Override
-    protected void onPause() {
+    public void onPause() {
+        ((App) getApplication()).removeInternetConnectionListener();
         super.onPause();
     }
 }

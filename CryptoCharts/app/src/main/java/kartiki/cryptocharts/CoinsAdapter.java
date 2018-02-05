@@ -1,5 +1,7 @@
 package kartiki.cryptocharts;
 
+import android.app.Application;
+import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v7.widget.RecyclerView;
@@ -11,14 +13,16 @@ import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.reactivex.schedulers.Schedulers;
+import retrofit2.Retrofit;
 
-import static kartiki.cryptocharts.MainActivity.retrofit;
 
 /**
  * Created by Kartiki on 2018-02-02.
@@ -30,12 +34,12 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
     private HashMap<String, String> coinPriceMap;
     private Handler mainHandler = new Handler(Looper.getMainLooper());
     private int numOfFavouriteCoins = 0;
+    private CryptoPriceAPIService cryptoPriceAPIService;
 
-    private CryptoPriceAPIService apiService2 = retrofit(CryptoPriceAPIService.baseUrl).create(CryptoPriceAPIService.class);
-
-    public CoinsAdapter(ArrayList<Pair<String, Boolean>> coinsNameList) {
+    public CoinsAdapter(ArrayList<Pair<String, Boolean>> coinsNameList, CryptoPriceAPIService cryptoPriceAPIService) {
         this.coinsNameList = coinsNameList;
         coinPriceMap = new HashMap<>();
+        this.cryptoPriceAPIService = cryptoPriceAPIService;
     }
 
     @Override
@@ -50,7 +54,7 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
         }
 
         if (coinPriceMap.get(coinName) == null) {
-            apiService2.getCoinPrice(coinName, "CAD")
+            cryptoPriceAPIService.getCoinPrice(coinName, "CAD")
                     .subscribeOn(Schedulers.newThread())
                     .observeOn(Schedulers.io())
                     .subscribe(cadPrice -> {
@@ -58,23 +62,43 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
                         coinPriceMap.put(coinName, cadPrice.getPrice());
 
                         if (cadPrice.getPrice() != null) {
-                            Runnable updatePrice = () ->
-                                    holder.coinPrice.setText(String.format("$%s", cadPrice.getPrice()));
+                            Runnable updatePrice = () -> {
+                                holder.coinPrice.setText(String.format("$%s", cadPrice.getPrice()));
+                                holder.coinPrice.setVisibility(View.VISIBLE);
+                            };
 
                             mainHandler.post(updatePrice);
                         }
-                    }, error -> Log.e("cadPriceAPIRespFailure", error.getMessage()));
+                    }, error -> {
+                        if (error.getClass().equals(UnknownHostException.class) ||
+                                error.getClass().equals(SocketTimeoutException.class)) {
+                            Runnable showNoPrice = () -> {
+                                if (coinPriceMap.get(coinName) != null) {
+                                    holder.coinPrice.setText(String.format("$%s", coinPriceMap.get(coinName)));
+//                                    holder.coinPrice.setVisibility(View.VISIBLE);
+                                }
+                                else {
+                                    holder.coinPrice.setVisibility(View.INVISIBLE);
+                                }
+                            };
+
+                            mainHandler.post(showNoPrice);
+                        } else {
+                            Log.e("cadPriceAPIRespFailure", error.getMessage());
+                        }
+                    });
         } else if (coinPriceMap.get(coinName) != null) {
             holder.coinPrice.setText(String.format("$%s", coinPriceMap.get(coinName)));
+            holder.coinPrice.setVisibility(View.VISIBLE);
         }
 
         holder.favButton.setOnClickListener(view -> {
-                if (view.isSelected()) {
-                    unfavouriteMoveOutOfFavouriteRegion(holder, coinName);
-                } else {
-                    favouriteAndMoveToTop(holder);
-                }
-            });
+            if (view.isSelected()) {
+                unfavouriteMoveOutOfFavouriteRegion(holder, coinName);
+            } else {
+                favouriteAndMoveToTop(holder);
+            }
+        });
     }
 
     @Override

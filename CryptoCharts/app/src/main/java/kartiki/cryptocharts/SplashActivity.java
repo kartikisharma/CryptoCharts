@@ -22,7 +22,10 @@ public class SplashActivity extends AppCompatActivity {
     @BindView(R.id.date)
     TextView date;
 
-    private final int SPLASH_DISPLAY_LENGTH = 1000;
+    private boolean mIsShowNextScreen;
+    private boolean mIsPaused =  false;
+    private Handler mHandler;
+    private final int SPLASH_TIME_OUT = 1000;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -34,10 +37,41 @@ public class SplashActivity extends AppCompatActivity {
         SimpleDateFormat format = new SimpleDateFormat("EEEE, MMMM d, yyyy");
         date.setText(format.format(calendar.getTime()));
 
-        new Handler().postDelayed(() -> {
-            Intent intent = new Intent(SplashActivity.this, MainActivity.class);
-            SplashActivity.this.startActivity(intent);
-            SplashActivity.this.finish();
-        }, SPLASH_DISPLAY_LENGTH);
+        mIsShowNextScreen = false;
+        mIsPaused = false;
+        mHandler = new Handler();
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mHandler.removeCallbacksAndMessages(null);
+                if (!mIsPaused) {
+                    startNextActivity();
+                } else {
+                    mIsShowNextScreen = true;
+                }
+            }
+        }, SPLASH_TIME_OUT);
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mIsShowNextScreen) {
+            mIsPaused = false;
+            startNextActivity();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mIsPaused = true;
+    }
+
+        private synchronized void startNextActivity() {
+            if (!mIsPaused) {
+                startActivity(new Intent(this, MainActivity.class));
+                finish();
+            }
+        }
 }
