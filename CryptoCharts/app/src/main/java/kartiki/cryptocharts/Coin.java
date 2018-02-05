@@ -7,9 +7,9 @@ import com.google.gson.annotations.SerializedName;
  */
 
 public class Coin {
-    @SerializedName("Symbol")
-    String name;
-
-    @SerializedName("CoinName")
-    String coinName;
+//    @SerializedName("Symbol")
+//    String name;
+//
+//    @SerializedName("CoinName")
+//    String coinName;
 }

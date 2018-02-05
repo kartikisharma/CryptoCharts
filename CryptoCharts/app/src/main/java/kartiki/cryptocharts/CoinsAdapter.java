@@ -18,15 +18,20 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.reactivex.schedulers.Schedulers;
 
+import static kartiki.cryptocharts.MainActivity.retrofit;
+
 /**
  * Created by Kartiki on 2018-02-02.
  */
 
 public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataViewHolder> {
+    public static final int STARTING_INDEX_OF_COINS_LIST = 0;
     private ArrayList<Pair<String, Boolean>> coinsNameList;
     private HashMap<String, String> coinPriceMap;
     private Handler mainHandler = new Handler(Looper.getMainLooper());
     private int numOfFavouriteCoins = 0;
+
+    private CryptoPriceAPIService apiService2 = retrofit(CryptoPriceAPIService.baseUrl).create(CryptoPriceAPIService.class);
 
     public CoinsAdapter(ArrayList<Pair<String, Boolean>> coinsNameList) {
         this.coinsNameList = coinsNameList;
@@ -45,7 +50,7 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
         }
 
         if (coinPriceMap.get(coinName) == null) {
-            MainActivity.apiService2.getCoinPrice(coinName, "CAD")
+            apiService2.getCoinPrice(coinName, "CAD")
                     .subscribeOn(Schedulers.newThread())
                     .observeOn(Schedulers.io())
                     .subscribe(cadPrice -> {
@@ -63,16 +68,13 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
             holder.coinPrice.setText(String.format("$%s", coinPriceMap.get(coinName)));
         }
 
-        holder.favButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
+        holder.favButton.setOnClickListener(view -> {
                 if (view.isSelected()) {
                     unfavouriteMoveOutOfFavouriteRegion(holder, coinName);
                 } else {
                     favouriteAndMoveToTop(holder);
                 }
-            }
-        });
+            });
     }
 
     @Override
@@ -97,8 +99,8 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
             coinsNameList.remove(index);
             notifyItemRemoved(index);
 
-            coinsNameList.add(0, new Pair<>(coinDataViewHolder.coinName.getText().toString(), true));
-            notifyItemInserted(0);
+            coinsNameList.add(STARTING_INDEX_OF_COINS_LIST, new Pair<>(coinDataViewHolder.coinName.getText().toString(), true));
+            notifyItemInserted(STARTING_INDEX_OF_COINS_LIST);
             numOfFavouriteCoins++;
             notifyDataSetChanged();
         }

@@ -1,8 +1,6 @@
 package kartiki.cryptocharts;
 
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -29,8 +27,10 @@ public class MainActivity extends AppCompatActivity {
     @BindView(R.id.progress_loader)
     ProgressBar progressBar;
 
-    private ArrayList<Pair<String, Boolean>> coinsNameList = new ArrayList<>();
     CoinsAdapter adapter;
+
+    // contains pairs of coin name and if it was favourited
+    private ArrayList<Pair<String, Boolean>> coinNameAndFavouriteList = new ArrayList<>();
 
     static Retrofit retrofit(String baseUrl) {
         return new Retrofit.Builder()
@@ -40,12 +40,15 @@ public class MainActivity extends AppCompatActivity {
                 .build();
     }
 
-    public static CryptoAPIService apiService = retrofit("https://www.cryptocompare.com/").create(CryptoAPIService.class);
-    public static CryptoAPIService apiService2 = retrofit("https://min-api.cryptocompare.com/").create(CryptoAPIService.class);
+    private CryptoCoinListAPIService apiService = retrofit(CryptoCoinListAPIService.baseUrl).create(CryptoCoinListAPIService.class);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setTheme(R.style.AppTheme);
         super.onCreate(savedInstanceState);
+        if (savedInstanceState != null) {
+            Log.v("savedInstanceState", "found");
+        }
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
 
@@ -62,9 +65,9 @@ public class MainActivity extends AppCompatActivity {
                 .subscribe(coinListResponse -> {
                             ArrayList<String> strings = new ArrayList<>(coinListResponse.body().getCoins().keySet());
                             for (int i = 0; i < strings.size(); ++i) {
-                                coinsNameList.add(new Pair<>(strings.get(i), false));
+                                coinNameAndFavouriteList.add(new Pair<>(strings.get(i), false));
                             }
-                            setupAdapter(coinsNameList);
+                            setupAdapter(coinNameAndFavouriteList);
                         },
                         error -> {
                             Log.e("error", error.getMessage());
