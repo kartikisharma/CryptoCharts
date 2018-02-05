@@ -1,6 +1,7 @@
 package kartiki.cryptocharts;
 
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,44 +12,40 @@ import java.util.HashMap;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by Kartiki on 2018-02-02.
  */
 
 public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataViewHolder> {
-    private HashMap<String, String> namePriceMap;
     private ArrayList<String> coinsNameList;
+    private HashMap<String, String> coinPriceMap;
 
-    public CoinsAdapter(ArrayList<String> coinsNameList, HashMap<String, String> namePriceMap) {
+    public CoinsAdapter(ArrayList<String> coinsNameList) {
         this.coinsNameList = coinsNameList;
-        this.namePriceMap = namePriceMap;
+        coinPriceMap = new HashMap<>();
     }
 
     @Override
     public void onBindViewHolder(CoinDataViewHolder holder, int position) {
         String coinName = coinsNameList.get(position);
         holder.coinName.setText(coinName);
-        holder.coinPrice.setText(namePriceMap.get(coinName));
-        
-//        if (namePriceMap.get(coinsNameList.get(position)) == null) {
-//            MainActivity.apiService2.getCoinPrice(coinsNameList.get(position), "CAD")
-//                    .subscribeOn(Schedulers.newThread())
-//                    .observeOn(Schedulers.newThread())
-//                    .doOnNext(cadPrice -> holder.coinPrice.setText(cadPrice.getPrice()));
-//        } else {
-//            holder.coinPrice.setText(namePriceMap.get(coinsNameList.get(position)));
-//        }
 
-//        holder.favButton.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                // enablement
-//                // move to top
-//
-//
-//            }
-//        });
+        if (coinPriceMap.get(coinName) == null) {
+            MainActivity.apiService2.getCoinPrice(coinName, "CAD")
+                    .subscribeOn(Schedulers.newThread())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(cadPrice -> {
+                        // storing price mapping in HashMap for consequent binding
+                        coinPriceMap.put(coinName, cadPrice.getPrice());
+                        holder.coinPrice.setText(cadPrice.getPrice());
+                        holder.coinPrice.setVisibility(View.VISIBLE);
+                    }, error -> Log.e("error", "cad"));
+        } else {
+            holder.coinPrice.setText(coinPriceMap.get(coinName));
+        }
     }
 
     @Override
@@ -58,10 +55,9 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
     }
 
 
-
     @Override
     public int getItemCount() {
-        return (namePriceMap != null) ? namePriceMap.size() : 0;
+        return (coinsNameList != null) ? coinsNameList.size() : 0;
     }
 
     public static class CoinDataViewHolder extends RecyclerView.ViewHolder {
