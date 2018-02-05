@@ -13,6 +13,7 @@ import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
+import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -70,12 +71,11 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
                             mainHandler.post(updatePrice);
                         }
                     }, error -> {
-                        if (error.getClass().equals(UnknownHostException.class) ||
-                                error.getClass().equals(SocketTimeoutException.class)) {
+                        if (error instanceof IOException) {
                             Runnable showNoPrice = () -> {
                                 if (coinPriceMap.get(coinName) != null) {
                                     holder.coinPrice.setText(String.format("$%s", coinPriceMap.get(coinName)));
-//                                    holder.coinPrice.setVisibility(View.VISIBLE);
+                                    holder.coinPrice.setVisibility(View.VISIBLE);
                                 }
                                 else {
                                     holder.coinPrice.setVisibility(View.INVISIBLE);

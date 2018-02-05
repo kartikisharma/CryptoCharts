@@ -71,7 +71,7 @@ public class App extends Application {
 
     private OkHttpClient provideOkHttpClient() {
         OkHttpClient.Builder okhttpClientBuilder = new OkHttpClient.Builder();
-        okhttpClientBuilder.connectTimeout(5, TimeUnit.SECONDS);
+        okhttpClientBuilder.connectTimeout(10, TimeUnit.SECONDS);
         okhttpClientBuilder.readTimeout(10, TimeUnit.SECONDS);
         okhttpClientBuilder.writeTimeout(10, TimeUnit.SECONDS);
 
