@@ -1,10 +1,13 @@
 package kartiki.cryptocharts;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.util.Pair;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -26,7 +29,7 @@ public class MainActivity extends AppCompatActivity {
     @BindView(R.id.progress_loader)
     ProgressBar progressBar;
 
-    private ArrayList<String> coinsNameList;
+    private ArrayList<Pair<String, Boolean>> coinsNameList = new ArrayList<>();
     CoinsAdapter adapter;
 
     static Retrofit retrofit(String baseUrl) {
@@ -57,7 +60,10 @@ public class MainActivity extends AppCompatActivity {
                 .observeOn(Schedulers.io())
                 .subscribeOn(Schedulers.newThread())
                 .subscribe(coinListResponse -> {
-                            coinsNameList = new ArrayList<>(coinListResponse.body().getCoins().keySet());
+                            ArrayList<String> strings = new ArrayList<>(coinListResponse.body().getCoins().keySet());
+                            for (int i = 0; i < strings.size(); ++i) {
+                                coinsNameList.add(new Pair<>(strings.get(i), false));
+                            }
                             setupAdapter(coinsNameList);
                         },
                         error -> {
@@ -67,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void setupAdapter(ArrayList<String> coinsNameList) {
+    private void setupAdapter(ArrayList<Pair<String, Boolean>> coinsNameList) {
         adapter = new CoinsAdapter(coinsNameList);
         this.runOnUiThread(() -> {
             recyclerView.setAdapter(adapter);
@@ -76,9 +82,8 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-//    @OnClick(R.id.favourite_button)
-//    void enableButtonAndMoveToTop(ImageButton button) {
-//        adapter.
-//        adapter.getItemId()
-//    }
+    @Override
+    protected void onPause() {
+        super.onPause();
+    }
 }
