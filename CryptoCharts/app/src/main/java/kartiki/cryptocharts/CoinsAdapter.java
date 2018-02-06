@@ -1,5 +1,6 @@
 package kartiki.cryptocharts;
 
+import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v7.widget.RecyclerView;
@@ -27,12 +28,17 @@ import io.reactivex.schedulers.Schedulers;
 public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataViewHolder> {
     public static final int STARTING_INDEX_OF_COINS_LIST = 0;
     ArrayList<Coin> coinsList;
-    int numOfFavouriteCoins = 0;
+    int numOfFavouriteCoins;
     private HashMap<String, String> coinPriceMap;
     private Handler mainHandler = new Handler(Looper.getMainLooper());
     private CryptoPriceAPIService cryptoPriceAPIService;
+    private Context context;
 
-    public CoinsAdapter(ArrayList<Coin> coinsList, int numOfFavouriteCoins, CryptoPriceAPIService cryptoPriceAPIService) {
+    public CoinsAdapter(ArrayList<Coin> coinsList,
+                        int numOfFavouriteCoins,
+                        CryptoPriceAPIService cryptoPriceAPIService,
+                        Context context) {
+        this.context = context;
         this.coinsList = coinsList;
         coinPriceMap = new HashMap<>();
         this.numOfFavouriteCoins = numOfFavouriteCoins;
@@ -114,6 +120,7 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
         if (index == numOfFavouriteCoins) { //only modifying the data at current index
             coinsList.set(index,
                     new Coin(holder.coinName.getText().toString(), true));
+            AppDatabase.getAppDatabase(context).coinDao().insertAll(coinsList.get(index));
             numOfFavouriteCoins++;
             notifyDataSetChanged();
         } else {
@@ -122,6 +129,7 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
 
             coinsList.add(STARTING_INDEX_OF_COINS_LIST,
                     new Coin(holder.coinName.getText().toString(), true));
+            AppDatabase.getAppDatabase(context).coinDao().insertAll(coinsList.get(0));
             notifyItemInserted(STARTING_INDEX_OF_COINS_LIST);
             numOfFavouriteCoins++;
             notifyDataSetChanged();
@@ -130,6 +138,7 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
 
     private void unfavouriteMoveOutOfFavouriteRegion(CoinDataViewHolder holder, String coinName) {
         int index = holder.getAdapterPosition();
+        AppDatabase.getAppDatabase(context).coinDao().delete(coinName);
 
         if (index == numOfFavouriteCoins) { //only modifying the data at current index
             coinsList.set(index, new Coin(holder.coinName.getText().toString(), false));

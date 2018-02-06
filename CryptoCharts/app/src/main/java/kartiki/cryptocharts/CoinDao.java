@@ -26,8 +26,8 @@ public interface CoinDao {
     @Insert
     void insertAll(Coin... coins);
 
-    @Delete
-    void delete(Coin coin);
+    @Query("DELETE FROM coins WHERE coin_name LIKE (:coinName)")
+    void delete(String coinName);
 
     @Query("DELETE FROM coins")
     void deleteAllCoins();

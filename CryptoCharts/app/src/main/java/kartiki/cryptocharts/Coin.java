@@ -12,7 +12,7 @@ import com.google.gson.annotations.SerializedName;
  */
 
 @Entity(tableName = "coins")
-public class Coin {
+public final class Coin {
     @PrimaryKey(autoGenerate = true)
     private int uid;
 
@@ -26,6 +26,14 @@ public class Coin {
     public Coin(String coinName) {
         this.coinName = coinName;
         this.isFavourite = false;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Coin) {
+            return this.coinName.equals(((Coin)obj).getCoinName());
+        }
+        else return false;
     }
 
     @Ignore

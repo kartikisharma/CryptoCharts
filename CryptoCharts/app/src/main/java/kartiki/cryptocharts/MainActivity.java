@@ -69,7 +69,7 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
                             }
                             List<Coin> coins= AppDatabase.getAppDatabase(getApplicationContext())
                                     .coinDao().getCoindataByFavourite(true);
-                            for (int i = 0; i < coins.size(); ++i) {
+                            for (int i = coins.size() - 1; i >= 0; --i) {
                                 coinArrayList.remove(coins.get(i));
                                 coinArrayList.add(0, coins.get(i));
                             }
@@ -93,7 +93,8 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
 
 
     private void setupAdapter(ArrayList<Coin> coinsNameList, int numOfFavouriteCoins) {
-        adapter = new CoinsAdapter(coinsNameList, numOfFavouriteCoins, ((App) getApplication()).getCryptoPriceAPIService());
+        adapter = new CoinsAdapter(coinsNameList, numOfFavouriteCoins,
+                ((App) getApplication()).getCryptoPriceAPIService(), getApplicationContext());
         this.runOnUiThread(() -> {
             recyclerView.setAdapter(adapter);
             progressBar.setVisibility(View.GONE);
@@ -105,17 +106,6 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
     @Override
     public void onPause() {
         ((App) getApplication()).removeInternetConnectionListener();
-
-        if (adapter != null) {
-            AppDatabase.getAppDatabase(getApplicationContext()).coinDao().deleteAllCoins();
-
-            // iterating from the end of favourites, to maintain order when app is relaunched
-            for (int i = adapter.numOfFavouriteCoins - 1; i >= 0; --i) {
-                AppDatabase.getAppDatabase(getApplicationContext())
-                        .coinDao().insertAll(adapter.coinsList.get(i));
-            }
-        }
-
         super.onPause();
     }
 }
