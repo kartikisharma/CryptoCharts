@@ -1,7 +1,5 @@
 package kartiki.cryptocharts;
 
-import android.app.Application;
-import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v7.widget.RecyclerView;
@@ -14,15 +12,12 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 
 import java.io.IOException;
-import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.reactivex.schedulers.Schedulers;
-import retrofit2.Retrofit;
 
 
 /**
@@ -31,24 +26,25 @@ import retrofit2.Retrofit;
 
 public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataViewHolder> {
     public static final int STARTING_INDEX_OF_COINS_LIST = 0;
-    private ArrayList<Pair<String, Boolean>> coinsNameList;
+    ArrayList<Coin> coinsList;
+    int numOfFavouriteCoins = 0;
     private HashMap<String, String> coinPriceMap;
     private Handler mainHandler = new Handler(Looper.getMainLooper());
-    private int numOfFavouriteCoins = 0;
     private CryptoPriceAPIService cryptoPriceAPIService;
 
-    public CoinsAdapter(ArrayList<Pair<String, Boolean>> coinsNameList, CryptoPriceAPIService cryptoPriceAPIService) {
-        this.coinsNameList = coinsNameList;
+    public CoinsAdapter(ArrayList<Coin> coinsList, int numOfFavouriteCoins, CryptoPriceAPIService cryptoPriceAPIService) {
+        this.coinsList = coinsList;
         coinPriceMap = new HashMap<>();
+        this.numOfFavouriteCoins = numOfFavouriteCoins;
         this.cryptoPriceAPIService = cryptoPriceAPIService;
     }
 
     @Override
     public void onBindViewHolder(CoinDataViewHolder holder, int position) {
-        String coinName = coinsNameList.get(holder.getAdapterPosition()).first;
+        String coinName = coinsList.get(holder.getAdapterPosition()).getCoinName();
         holder.coinName.setText(coinName);
 
-        if (coinsNameList.get(holder.getAdapterPosition()).second) {
+        if (coinsList.get(holder.getAdapterPosition()).getFavourite()) {
             holder.favButton.setSelected(true);
         } else if (holder.favButton.isSelected()) {
             holder.favButton.setSelected(false);
@@ -109,21 +105,23 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
 
     @Override
     public int getItemCount() {
-        return (coinsNameList != null) ? coinsNameList.size() : 0;
+        return (coinsList != null) ? coinsList.size() : 0;
     }
 
-    void favouriteAndMoveToTop(CoinDataViewHolder coinDataViewHolder) {
-        int index = coinDataViewHolder.getAdapterPosition();
+    void favouriteAndMoveToTop(CoinDataViewHolder holder) {
+        int index = holder.getAdapterPosition();
 
         if (index == numOfFavouriteCoins) { //only modifying the data at current index
-            coinsNameList.set(index, new Pair<>(coinDataViewHolder.coinName.getText().toString(), true));
+            coinsList.set(index,
+                    new Coin(holder.coinName.getText().toString(), true));
             numOfFavouriteCoins++;
             notifyDataSetChanged();
         } else {
-            coinsNameList.remove(index);
+            coinsList.remove(index);
             notifyItemRemoved(index);
 
-            coinsNameList.add(STARTING_INDEX_OF_COINS_LIST, new Pair<>(coinDataViewHolder.coinName.getText().toString(), true));
+            coinsList.add(STARTING_INDEX_OF_COINS_LIST,
+                    new Coin(holder.coinName.getText().toString(), true));
             notifyItemInserted(STARTING_INDEX_OF_COINS_LIST);
             numOfFavouriteCoins++;
             notifyDataSetChanged();
@@ -134,15 +132,15 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
         int index = holder.getAdapterPosition();
 
         if (index == numOfFavouriteCoins) { //only modifying the data at current index
-            coinsNameList.set(index, new Pair<>(coinName, false));
+            coinsList.set(index, new Coin(holder.coinName.getText().toString(), false));
             numOfFavouriteCoins--;
             notifyDataSetChanged();
         } else {
-            coinsNameList.remove(holder.getAdapterPosition());
+            coinsList.remove(holder.getAdapterPosition());
             notifyItemRemoved(holder.getAdapterPosition());
             numOfFavouriteCoins--;
 
-            coinsNameList.add(numOfFavouriteCoins, new Pair<>(coinName, false));
+            coinsList.add(numOfFavouriteCoins, new Coin(holder.coinName.getText().toString(), false));
             notifyItemInserted(numOfFavouriteCoins);
             notifyDataSetChanged();
         }

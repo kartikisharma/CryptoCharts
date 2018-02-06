@@ -1,25 +1,29 @@
 package kartiki.cryptocharts;
 
-import android.accounts.NetworkErrorException;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.util.Pair;
 import android.view.View;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.reactivex.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity implements InternetConnectionListener {
+    @BindView(R.id.recycler_container)
+    RelativeLayout relativeLayout;
+
     @BindView(R.id.crypto_recycler_view)
     RecyclerView recyclerView;
 
@@ -28,8 +32,10 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
 
     CoinsAdapter adapter;
 
+
     // contains pairs of coin name and if it was favourited
-    private ArrayList<Pair<String, Boolean>> coinNameAndFavouriteList = new ArrayList<>();
+//    private ArrayList<Pair<String, Boolean>> coinNameAndFavouriteList = new ArrayList<>();
+    private ArrayList<Coin> coinArrayList = new ArrayList<>();
 
     @Override
     public void onInternetUnavailable() {
@@ -41,9 +47,6 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
     protected void onCreate(Bundle savedInstanceState) {
         setTheme(R.style.AppTheme);
         super.onCreate(savedInstanceState);
-        if (savedInstanceState != null) {
-            Log.v("savedInstanceState", "found");
-        }
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
 
@@ -62,14 +65,24 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
                 .subscribe(coinListResponse -> {
                             ArrayList<String> strings = new ArrayList<>(coinListResponse.body().getCoins().keySet());
                             for (int i = 0; i < strings.size(); ++i) {
-                                coinNameAndFavouriteList.add(new Pair<>(strings.get(i), false));
+                                coinArrayList.add(new Coin(strings.get(i)));
                             }
-                            setupAdapter(coinNameAndFavouriteList);
+                            List<Coin> coins= AppDatabase.getAppDatabase(getApplicationContext())
+                                    .coinDao().getCoindataByFavourite(true);
+                            for (int i = 0; i < coins.size(); ++i) {
+                                coinArrayList.remove(coins.get(i));
+                                coinArrayList.add(0, coins.get(i));
+                            }
+
+                            setupAdapter(coinArrayList, coins.size());
                         },
                         error -> {
                             if (error.getClass().equals(UnknownHostException.class) ||
                                     error.getClass().equals(SocketTimeoutException.class)) {
                                 this.runOnUiThread(() -> progressBar.setVisibility(View.GONE));
+                                Snackbar mySnackbar = Snackbar.make(relativeLayout,
+                                        "Network connection unavailable. Please try again later.", Snackbar.LENGTH_SHORT);
+                                mySnackbar.show();
                             }
                             else {
                                 Log.e("error", error.getMessage());
@@ -79,8 +92,8 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
     }
 
 
-    private void setupAdapter(ArrayList<Pair<String, Boolean>> coinsNameList) {
-        adapter = new CoinsAdapter(coinsNameList, ((App) getApplication()).getCryptoPriceAPIService());
+    private void setupAdapter(ArrayList<Coin> coinsNameList, int numOfFavouriteCoins) {
+        adapter = new CoinsAdapter(coinsNameList, numOfFavouriteCoins, ((App) getApplication()).getCryptoPriceAPIService());
         this.runOnUiThread(() -> {
             recyclerView.setAdapter(adapter);
             progressBar.setVisibility(View.GONE);
@@ -92,6 +105,17 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
     @Override
     public void onPause() {
         ((App) getApplication()).removeInternetConnectionListener();
+
+        if (adapter != null) {
+            AppDatabase.getAppDatabase(getApplicationContext()).coinDao().deleteAllCoins();
+
+            // iterating from the end of favourites, to maintain order when app is relaunched
+            for (int i = adapter.numOfFavouriteCoins - 1; i >= 0; --i) {
+                AppDatabase.getAppDatabase(getApplicationContext())
+                        .coinDao().insertAll(adapter.coinsList.get(i));
+            }
+        }
+
         super.onPause();
     }
 }
