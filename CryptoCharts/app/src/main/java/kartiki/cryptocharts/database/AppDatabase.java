@@ -11,7 +11,7 @@ import kartiki.cryptocharts.retrofit.Coin;
  * Created by Kartiki on 2018-02-05.
  */
 
-@Database(entities = {Coin.class}, version = 3)
+@Database(entities = {Coin.class}, version = 4)
 public abstract class AppDatabase extends RoomDatabase {
 
     private static AppDatabase INSTANCE;

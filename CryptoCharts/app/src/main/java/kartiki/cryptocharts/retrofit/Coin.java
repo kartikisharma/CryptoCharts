@@ -23,6 +23,9 @@ public final class Coin {
     @ColumnInfo(name = "is_favourite")
     private Boolean isFavourite;
 
+    @ColumnInfo(name = "price")
+    private String price;
+
     public Coin(String coinName) {
         this.coinName = coinName;
     }
@@ -30,9 +33,8 @@ public final class Coin {
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof Coin) {
-            return this.coinName.equals(((Coin)obj).getCoinName());
-        }
-        else return false;
+            return this.coinName.equals(((Coin) obj).getCoinName());
+        } else return false;
     }
 
     @Ignore
@@ -63,5 +65,13 @@ public final class Coin {
 
     public void setFavourite(Boolean favourite) {
         isFavourite = favourite;
+    }
+
+    public String getPrice() {
+        return price;
+    }
+
+    public void setPrice(String price) {
+        this.price = price;
     }
 }
