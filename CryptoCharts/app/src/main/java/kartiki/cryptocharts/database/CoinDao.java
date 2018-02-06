@@ -24,8 +24,8 @@ public interface CoinDao {
     @Query("SELECT * FROM coins WHERE is_favourite LIKE (:isFavorite)")
     List<Coin> getCoindataByFavourite(Boolean isFavorite);
 
-    @Insert
-    void insertAll(Coin... coins);
+    @Insert(onConflict = REPLACE)
+    void insertOrReplace(Coin coin);
 
     @Query("DELETE FROM coins WHERE coin_name LIKE (:coinName)")
     void delete(String coinName);

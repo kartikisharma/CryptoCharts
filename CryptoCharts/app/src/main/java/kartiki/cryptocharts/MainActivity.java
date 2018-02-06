@@ -56,9 +56,7 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         if (activeNetworkInfo != null && activeNetworkInfo.isConnected()) {
             if (networkUnavailableSnackbar != null && networkUnavailableSnackbar.isShown()) {
-                this.runOnUiThread(() -> {
-                    networkUnavailableSnackbar.dismiss();
-                });
+                this.runOnUiThread(() -> networkUnavailableSnackbar.dismiss());
             }
             return true;
         }
@@ -94,6 +92,8 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
                             List<Coin> favouriteCoins = AppDatabase.getAppDatabase(getApplicationContext())
                                     .coinDao().getCoindataByFavourite(true);
                             for (int i = 0; i < favouriteCoins.size(); i++) {
+                                favouriteCoins.get(i).setPrice(null);  // setting the price to null so that price API
+                                                                       // calls on bind view can fetch an updated price
                                 coinArrayList.remove(favouriteCoins.get(i));
                                 coinArrayList.add(0, favouriteCoins.get(i));
                             }
@@ -102,10 +102,12 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
                         },
                         throwable -> {
                             if (!(throwable instanceof IOException)) {
-                                progressBar.setVisibility(View.GONE);
-                                Log.e("throwable", throwable.getMessage());
-                                Snackbar.make(relativeLayout, R.string.please_try_again, Snackbar.LENGTH_SHORT)
-                                        .show();
+                                this.runOnUiThread( () -> {
+                                    progressBar.setVisibility(View.GONE);
+                                    Log.e("throwable", throwable.getMessage());
+                                    Snackbar.make(relativeLayout, R.string.please_try_again, Snackbar.LENGTH_SHORT)
+                                            .show();
+                                });
                             } else {
                                 fetchFavouritesFromDatabaseAndSetupAdapter();
                             }
