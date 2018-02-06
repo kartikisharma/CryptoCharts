@@ -10,6 +10,8 @@ import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.schedulers.Schedulers;
+import kartiki.cryptocharts.retrofit.apiservices.CryptoCoinListAPIService;
+import kartiki.cryptocharts.retrofit.apiservices.CryptoPriceAPIService;
 import okhttp3.OkHttpClient;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
@@ -91,6 +93,4 @@ public class App extends Application {
 
         return okhttpClientBuilder.build();
     }
-
-
 }

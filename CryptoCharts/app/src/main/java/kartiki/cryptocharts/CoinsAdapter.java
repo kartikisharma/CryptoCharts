@@ -5,7 +5,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,6 +18,11 @@ import java.util.HashMap;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.reactivex.schedulers.Schedulers;
+import kartiki.cryptocharts.retrofit.Coin;
+import kartiki.cryptocharts.retrofit.apiservices.CryptoPriceAPIService;
+import kartiki.cryptocharts.database.AppDatabase;
+
+import static kartiki.cryptocharts.retrofit.CADPrice.CurrencyType;
 
 
 /**
@@ -50,46 +54,16 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
         String coinName = coinsList.get(holder.getAdapterPosition()).getCoinName();
         holder.coinName.setText(coinName);
 
-        if (coinsList.get(holder.getAdapterPosition()).getFavourite()) {
-            holder.favButton.setSelected(true);
-        } else if (holder.favButton.isSelected()) {
+        Boolean isFavourite = coinsList.get(holder.getAdapterPosition()).getFavourite();
+        if (isFavourite == null || !isFavourite) {
             holder.favButton.setSelected(false);
+        } else {
+            holder.favButton.setSelected(true);
         }
 
         if (coinPriceMap.get(coinName) == null) {
-            cryptoPriceAPIService.getCoinPrice(coinName, "CAD")
-                    .subscribeOn(Schedulers.newThread())
-                    .observeOn(Schedulers.io())
-                    .subscribe(cadPrice -> {
-                        // storing price mapping in HashMap for consequent binding
-                        coinPriceMap.put(coinName, cadPrice.getPrice());
-
-                        if (cadPrice.getPrice() != null) {
-                            Runnable updatePrice = () -> {
-                                holder.coinPrice.setText(String.format("$%s", cadPrice.getPrice()));
-                                holder.coinPrice.setVisibility(View.VISIBLE);
-                            };
-
-                            mainHandler.post(updatePrice);
-                        }
-                    }, error -> {
-                        if (error instanceof IOException) {
-                            Runnable showNoPrice = () -> {
-                                if (coinPriceMap.get(coinName) != null) {
-                                    holder.coinPrice.setText(String.format("$%s", coinPriceMap.get(coinName)));
-                                    holder.coinPrice.setVisibility(View.VISIBLE);
-                                }
-                                else {
-                                    holder.coinPrice.setVisibility(View.INVISIBLE);
-                                }
-                            };
-
-                            mainHandler.post(showNoPrice);
-                        } else {
-                            Log.e("cadPriceAPIRespFailure", error.getMessage());
-                        }
-                    });
-        } else if (coinPriceMap.get(coinName) != null) {
+            fetchPriceOfCoin(holder, coinName);
+        } else {
             holder.coinPrice.setText(String.format("$%s", coinPriceMap.get(coinName)));
             holder.coinPrice.setVisibility(View.VISIBLE);
         }
@@ -101,6 +75,40 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
                 favouriteAndMoveToTop(holder);
             }
         });
+    }
+
+    private void fetchPriceOfCoin(CoinDataViewHolder holder, String coinName) {
+        cryptoPriceAPIService.getCoinCADPrice(coinName, CurrencyType)
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(Schedulers.io())
+                .subscribe(cadPrice -> {
+                    // storing price mapping in HashMap for subsequent bindings
+                    coinPriceMap.put(coinName, cadPrice.getPrice());
+
+                    if (cadPrice.getPrice() != null) {
+                        Runnable updatePrice = () -> {
+                            holder.coinPrice.setText(String.format("$%s", cadPrice.getPrice()));
+                            holder.coinPrice.setVisibility(View.VISIBLE);
+                        };
+
+                        mainHandler.post(updatePrice);
+                    }
+                }, error -> {
+                    if (error instanceof IOException) {
+                        Runnable showNoPrice = () -> {
+                            if (coinPriceMap.get(coinName) != null) {
+                                holder.coinPrice.setText(String.format("$%s", coinPriceMap.get(coinName)));
+                                holder.coinPrice.setVisibility(View.VISIBLE);
+                            } else {
+                                holder.coinPrice.setVisibility(View.INVISIBLE);
+                            }
+                        };
+
+                        mainHandler.post(showNoPrice);
+                    } else {
+                        Log.e("cadPriceAPIRespFailure", error.getMessage());
+                    }
+                });
     }
 
     @Override

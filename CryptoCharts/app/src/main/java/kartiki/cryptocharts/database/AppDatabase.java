@@ -1,9 +1,11 @@
-package kartiki.cryptocharts;
+package kartiki.cryptocharts.database;
 
 import android.arch.persistence.room.Database;
 import android.arch.persistence.room.Room;
 import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
+
+import kartiki.cryptocharts.retrofit.Coin;
 
 /**
  * Created by Kartiki on 2018-02-05.

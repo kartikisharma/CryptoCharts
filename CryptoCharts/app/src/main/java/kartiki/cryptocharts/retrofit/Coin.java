@@ -1,4 +1,4 @@
-package kartiki.cryptocharts;
+package kartiki.cryptocharts.retrofit;
 
 import android.arch.persistence.room.ColumnInfo;
 import android.arch.persistence.room.Entity;
@@ -25,7 +25,6 @@ public final class Coin {
 
     public Coin(String coinName) {
         this.coinName = coinName;
-        this.isFavourite = false;
     }
 
     @Override
@@ -41,7 +40,6 @@ public final class Coin {
         this.coinName = coinName;
         this.isFavourite = isFavourite;
     }
-
 
     public Boolean getFavourite() {
         return isFavourite;

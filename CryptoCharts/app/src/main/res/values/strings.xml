@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Crypto Charts</string>
+    <string name="network_connection_failed">Network connection unavailable. Please try again later.</string>
+    <string name="please_try_again">"Failed to fetch data. Please try again later"</string>
 </resources>

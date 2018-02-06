@@ -9,16 +9,16 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
-import android.widget.Toast;
 
-import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.reactivex.schedulers.Schedulers;
+import kartiki.cryptocharts.database.AppDatabase;
+import kartiki.cryptocharts.retrofit.Coin;
 
 public class MainActivity extends AppCompatActivity implements InternetConnectionListener {
     @BindView(R.id.recycler_container)
@@ -32,10 +32,7 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
 
     CoinsAdapter adapter;
 
-
-    // contains pairs of coin name and if it was favourited
-//    private ArrayList<Pair<String, Boolean>> coinNameAndFavouriteList = new ArrayList<>();
-    private ArrayList<Coin> coinArrayList = new ArrayList<>();
+    private ArrayList<Coin> coinArrayList;
 
     @Override
     public void onInternetUnavailable() {
@@ -63,34 +60,30 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
                 .observeOn(Schedulers.io())
                 .subscribeOn(Schedulers.newThread())
                 .subscribe(coinListResponse -> {
-                            ArrayList<String> strings = new ArrayList<>(coinListResponse.body().getCoins().keySet());
-                            for (int i = 0; i < strings.size(); ++i) {
-                                coinArrayList.add(new Coin(strings.get(i)));
-                            }
-                            List<Coin> coins= AppDatabase.getAppDatabase(getApplicationContext())
+                            coinArrayList = new ArrayList<>(coinListResponse.body().getCoins().values());
+
+                            // fetching favourited coins from database and replacing their instance from api fetched data
+                            List<Coin> favouriteCoins = AppDatabase.getAppDatabase(getApplicationContext())
                                     .coinDao().getCoindataByFavourite(true);
-                            for (int i = coins.size() - 1; i >= 0; --i) {
-                                coinArrayList.remove(coins.get(i));
-                                coinArrayList.add(0, coins.get(i));
+                            for (int i = 0; i < favouriteCoins.size(); i++) {
+                                coinArrayList.remove(favouriteCoins.get(i));
+                                coinArrayList.add(0, favouriteCoins.get(i));
                             }
 
-                            setupAdapter(coinArrayList, coins.size());
+                            setupAdapter(coinArrayList, favouriteCoins.size());
                         },
-                        error -> {
-                            if (error.getClass().equals(UnknownHostException.class) ||
-                                    error.getClass().equals(SocketTimeoutException.class)) {
+                        throwable -> {
+                            if (throwable instanceof IOException) {
                                 this.runOnUiThread(() -> progressBar.setVisibility(View.GONE));
-                                Snackbar mySnackbar = Snackbar.make(relativeLayout,
-                                        "Network connection unavailable. Please try again later.", Snackbar.LENGTH_SHORT);
-                                mySnackbar.show();
-                            }
-                            else {
-                                Log.e("error", error.getMessage());
-                                Toast.makeText(MainActivity.this, "Please try again later", Toast.LENGTH_SHORT).show();
+                                Snackbar.make(relativeLayout, R.string.network_connection_failed, Snackbar.LENGTH_SHORT)
+                                        .show();
+                            } else {
+                                Log.e("throwable", throwable.getMessage());
+                                Snackbar.make(relativeLayout, R.string.please_try_again, Snackbar.LENGTH_SHORT)
+                                        .show();
                             }
                         });
     }
-
 
     private void setupAdapter(ArrayList<Coin> coinsNameList, int numOfFavouriteCoins) {
         adapter = new CoinsAdapter(coinsNameList, numOfFavouriteCoins,
@@ -101,7 +94,6 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
             recyclerView.setVisibility(View.VISIBLE);
         });
     }
-
 
     @Override
     public void onPause() {

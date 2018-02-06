@@ -1,4 +1,4 @@
-package kartiki.cryptocharts;
+package kartiki.cryptocharts.retrofit;
 
 import com.google.gson.annotations.SerializedName;
 
