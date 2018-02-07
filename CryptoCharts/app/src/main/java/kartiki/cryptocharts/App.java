@@ -1,9 +1,6 @@
 package kartiki.cryptocharts;
 
 import android.app.Application;
-import android.content.Context;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 
 import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 
@@ -36,13 +33,6 @@ public class App extends Application {
 
     public void removeInternetConnectionListener() {
         mInternetConnectionListener = null;
-    }
-
-    private boolean isInternetAvailable() {
-        ConnectivityManager connectivityManager =
-                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
-        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
     public CryptoCoinListAPIService getCryptoCoinListAPIService() {
@@ -80,7 +70,7 @@ public class App extends Application {
         okhttpClientBuilder.addInterceptor(new NetworkConnectionInterceptor() {
             @Override
             public boolean isInternetAvailable() {
-                return App.this.isInternetAvailable();
+                return mInternetConnectionListener.isInternetAvailable();
             }
 
             @Override

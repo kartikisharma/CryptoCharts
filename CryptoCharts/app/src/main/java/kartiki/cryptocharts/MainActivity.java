@@ -1,5 +1,8 @@
 package kartiki.cryptocharts;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -34,10 +37,32 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
 
     private ArrayList<Coin> coinArrayList;
 
+    Snackbar networkUnavailableSnackbar;
+
     @Override
     public void onInternetUnavailable() {
-        // hide content UI
-        // show No Internet Connection UI
+        this.runOnUiThread(() -> {
+            progressBar.setVisibility(View.GONE);
+            if (!networkUnavailableSnackbar.isShown()) {
+                networkUnavailableSnackbar.show();
+            }
+        });
+    }
+
+    @Override
+    public boolean isInternetAvailable() {
+        ConnectivityManager connectivityManager =
+                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        if (activeNetworkInfo != null && activeNetworkInfo.isConnected()) {
+            if (networkUnavailableSnackbar != null && networkUnavailableSnackbar.isShown()) {
+                this.runOnUiThread(() -> {
+                    networkUnavailableSnackbar.dismiss();
+                });
+            }
+            return true;
+        }
+        else return false;
     }
 
     @Override
@@ -46,6 +71,9 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
+
+        networkUnavailableSnackbar = Snackbar.make(relativeLayout,
+                R.string.network_connection_failed, Snackbar.LENGTH_INDEFINITE);
 
         ((App) getApplication()).setInternetConnectionListener(this);
 
@@ -73,11 +101,8 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
                             setupAdapter(coinArrayList, favouriteCoins.size());
                         },
                         throwable -> {
-                            if (throwable instanceof IOException) {
-                                this.runOnUiThread(() -> progressBar.setVisibility(View.GONE));
-                                Snackbar.make(relativeLayout, R.string.network_connection_failed, Snackbar.LENGTH_SHORT)
-                                        .show();
-                            } else {
+                            if (!(throwable instanceof IOException)) {
+                                progressBar.setVisibility(View.GONE);
                                 Log.e("throwable", throwable.getMessage());
                                 Snackbar.make(relativeLayout, R.string.please_try_again, Snackbar.LENGTH_SHORT)
                                         .show();

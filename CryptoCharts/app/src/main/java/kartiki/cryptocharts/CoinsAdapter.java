@@ -18,9 +18,9 @@ import java.util.HashMap;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.reactivex.schedulers.Schedulers;
+import kartiki.cryptocharts.database.AppDatabase;
 import kartiki.cryptocharts.retrofit.Coin;
 import kartiki.cryptocharts.retrofit.apiservices.CryptoPriceAPIService;
-import kartiki.cryptocharts.database.AppDatabase;
 
 import static kartiki.cryptocharts.retrofit.CADPrice.CurrencyType;
 
@@ -64,7 +64,8 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
         if (coinPriceMap.get(coinName) == null) {
             fetchPriceOfCoin(holder, coinName);
         } else {
-            holder.coinPrice.setText(String.format("$%s", coinPriceMap.get(coinName)));
+            holder.coinPrice.setText(String.format(context.getResources().getString(R.string.price),
+                    coinPriceMap.get(coinName)));
             holder.coinPrice.setVisibility(View.VISIBLE);
         }
 
@@ -87,7 +88,9 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
 
                     if (cadPrice.getPrice() != null) {
                         Runnable updatePrice = () -> {
-                            holder.coinPrice.setText(String.format("$%s", cadPrice.getPrice()));
+                            holder.coinPrice.setText(
+                                    String.format(context.getResources().getString(R.string.price),
+                                    cadPrice.getPrice()));
                             holder.coinPrice.setVisibility(View.VISIBLE);
                         };
 
@@ -97,7 +100,9 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
                     if (error instanceof IOException) {
                         Runnable showNoPrice = () -> {
                             if (coinPriceMap.get(coinName) != null) {
-                                holder.coinPrice.setText(String.format("$%s", coinPriceMap.get(coinName)));
+                                holder.coinPrice.setText(
+                                        String.format(context.getResources().getString(R.string.price),
+                                        coinPriceMap.get(coinName)));
                                 holder.coinPrice.setVisibility(View.VISIBLE);
                             } else {
                                 holder.coinPrice.setVisibility(View.INVISIBLE);
@@ -124,43 +129,35 @@ public class CoinsAdapter extends RecyclerView.Adapter<CoinsAdapter.CoinDataView
 
     void favouriteAndMoveToTop(CoinDataViewHolder holder) {
         int index = holder.getAdapterPosition();
+        Coin favouritedCoin = coinsList.get(index);
+        favouritedCoin.setFavourite(true);
 
-        if (index == numOfFavouriteCoins) { //only modifying the data at current index
-            coinsList.set(index,
-                    new Coin(holder.coinName.getText().toString(), true));
-            AppDatabase.getAppDatabase(context).coinDao().insertAll(coinsList.get(index));
-            numOfFavouriteCoins++;
-            notifyDataSetChanged();
-        } else {
-            coinsList.remove(index);
-            notifyItemRemoved(index);
+        coinsList.remove(index);
+        notifyItemRemoved(index);
 
-            coinsList.add(STARTING_INDEX_OF_COINS_LIST,
-                    new Coin(holder.coinName.getText().toString(), true));
-            AppDatabase.getAppDatabase(context).coinDao().insertAll(coinsList.get(0));
-            notifyItemInserted(STARTING_INDEX_OF_COINS_LIST);
-            numOfFavouriteCoins++;
-            notifyDataSetChanged();
-        }
+        coinsList.add(STARTING_INDEX_OF_COINS_LIST, favouritedCoin);
+        notifyItemInserted(STARTING_INDEX_OF_COINS_LIST);
+        numOfFavouriteCoins++;
+        notifyDataSetChanged();
+
+        AppDatabase.getAppDatabase(context).coinDao()
+                .insertAll(coinsList.get(STARTING_INDEX_OF_COINS_LIST));
     }
 
     private void unfavouriteMoveOutOfFavouriteRegion(CoinDataViewHolder holder, String coinName) {
         int index = holder.getAdapterPosition();
+        Coin unFavouritedCoin = coinsList.get(index);
+        unFavouritedCoin.setFavourite(false);
+
         AppDatabase.getAppDatabase(context).coinDao().delete(coinName);
 
-        if (index == numOfFavouriteCoins) { //only modifying the data at current index
-            coinsList.set(index, new Coin(holder.coinName.getText().toString(), false));
-            numOfFavouriteCoins--;
-            notifyDataSetChanged();
-        } else {
-            coinsList.remove(holder.getAdapterPosition());
-            notifyItemRemoved(holder.getAdapterPosition());
-            numOfFavouriteCoins--;
+        coinsList.remove(holder.getAdapterPosition());
+        notifyItemRemoved(holder.getAdapterPosition());
+        numOfFavouriteCoins--;
 
-            coinsList.add(numOfFavouriteCoins, new Coin(holder.coinName.getText().toString(), false));
-            notifyItemInserted(numOfFavouriteCoins);
-            notifyDataSetChanged();
-        }
+        coinsList.add(numOfFavouriteCoins, unFavouritedCoin);
+        notifyItemInserted(numOfFavouriteCoins);
+        notifyDataSetChanged();
     }
 
     public static class CoinDataViewHolder extends RecyclerView.ViewHolder {

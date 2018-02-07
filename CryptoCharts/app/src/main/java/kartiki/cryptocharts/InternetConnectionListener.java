@@ -5,5 +5,6 @@ package kartiki.cryptocharts;
  */
 
 public interface InternetConnectionListener {
+    boolean isInternetAvailable();
     void onInternetUnavailable();
 }
