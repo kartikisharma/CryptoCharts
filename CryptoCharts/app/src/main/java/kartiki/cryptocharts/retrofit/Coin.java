@@ -3,6 +3,7 @@ package kartiki.cryptocharts.retrofit;
 import android.arch.persistence.room.ColumnInfo;
 import android.arch.persistence.room.Entity;
 import android.arch.persistence.room.Ignore;
+import android.arch.persistence.room.Index;
 import android.arch.persistence.room.PrimaryKey;
 
 import com.google.gson.annotations.SerializedName;
@@ -11,7 +12,7 @@ import com.google.gson.annotations.SerializedName;
  * Created by Kartiki on 2018-02-02.
  */
 
-@Entity(tableName = "coins")
+@Entity(tableName = "coins", indices = {@Index(value = {"coin_name"}, unique = true)})
 public final class Coin {
     @PrimaryKey(autoGenerate = true)
     private int uid;
