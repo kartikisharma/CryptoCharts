@@ -35,7 +35,7 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
 
     CoinsAdapter adapter;
 
-    private ArrayList<Coin> coinArrayList;
+    private ArrayList<Coin> coinArrayList = new ArrayList<>();
 
     Snackbar networkUnavailableSnackbar;
 
@@ -106,8 +106,19 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
                                 Log.e("throwable", throwable.getMessage());
                                 Snackbar.make(relativeLayout, R.string.please_try_again, Snackbar.LENGTH_SHORT)
                                         .show();
+                            } else {
+                                fetchFavouritesFromDatabaseAndSetupAdapter();
                             }
                         });
+    }
+
+    private void fetchFavouritesFromDatabaseAndSetupAdapter() {
+        List<Coin> favouriteCoins = AppDatabase.getAppDatabase(getApplicationContext())
+                .coinDao().getCoindataByFavourite(true);
+        for (int i = 0; i < favouriteCoins.size(); i++) {
+            coinArrayList.add(0, favouriteCoins.get(i));
+        }
+        setupAdapter(coinArrayList, favouriteCoins.size());
     }
 
     private void setupAdapter(ArrayList<Coin> coinsNameList, int numOfFavouriteCoins) {
