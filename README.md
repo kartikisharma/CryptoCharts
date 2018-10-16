@@ -1,8 +1,9 @@
-# SymbilityIntersect-CodeChallenge1
+# CryptoCharts
 
-<p>This is my implementation of all the features requested by the mobile engineer challenge for the Android platform. The following are additional features, I added to optimize the behaviour:
+<p>This is an implementation of the features requested by the mobile engineer challenge for the Android platform. The following are additional features, I added to optimize some features:
 <ul>
     <li>Snackbar to notify if the user is disconnected from network and attempting API calls. This is dismissed subsequent to the next API call where connection is available.</li>
+    <li>Store data in database</li>
 </ul>
 </p>
 
@@ -12,6 +13,13 @@
   <li>Retrofit</li>
   <li>Room</li>
   <li>RxJava</li>
+</ul>
+
+<h4>Features</h4>
+<ul>
+    <li>Fetches a list of cryptocurrency names</li>
+    <li>Makes subsequent API calls to fetches data of each coin</li>
+    <li>Favouriting an item in the recyclerview brings it to the top, and stores it in the database</li>
 </ul>
 
 <h3>Challenges</h3>
